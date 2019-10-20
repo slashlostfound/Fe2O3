@@ -5,4 +5,3 @@ authors = ["Guilherme Thomazi Bonicontro <thomazi@linux.com>", "Monarrk <monarrk
 edition = "2018"
 
 [dependencies]
-meval = "0.2"
