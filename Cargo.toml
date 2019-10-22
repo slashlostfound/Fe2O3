@@ -4,4 +4,10 @@ version = "0.1.0"
 authors = ["Guilherme Thomazi Bonicontro <thomazi@linux.com>", "Monarrk <monarrk@aaathats3as.com>"]
 edition = "2018"
 
+autobins = false
+
+[[bin]]
+name = "lfe"
+path = "src/main.rs"
+
 [dependencies]
